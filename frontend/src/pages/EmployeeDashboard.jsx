@@ -231,14 +231,17 @@ useEffect(() => {
       const year = currentMonth.getFullYear();
       const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/IN`);
       const data = await res.json();
-      const dates = data.map(h => h.date); // "YYYY-MM-DD" format
-      setIndianHolidays(dates);
+      // Store both date and name
+      const holidays = data.map(h => ({ date: h.date, name: h.name }));
+      setIndianHolidays(holidays);
     } catch (err) {
       console.error("Error fetching holidays:", err);
     }
   };
-  fetchHolidays();
+
+  fetchHolidays(); // <-- CALL the function here
 }, [currentMonth]);
+
 
 
 <div className="flex justify-between items-center mb-2">
@@ -282,7 +285,7 @@ const renderCalendar = () => {
 
   // Weekday headers
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  weekdays.forEach((day) => {
+  weekdays.forEach(day => {
     calendarCells.push(
       <div key={`week-${day}`} className="font-semibold text-center p-1">{day}</div>
     );
@@ -300,21 +303,28 @@ const renderCalendar = () => {
 
     // Default color
     let bgColor = "bg-gray-300";
+    let holidayName = null;
 
     // Sunday highlight
     if (date.getDay() === 0) bgColor = "bg-red-100";
 
-    // Holiday
-    if (indianHolidays.includes(dateStr)) bgColor = "bg-red-300";
+    // Holiday check
+    const holiday = indianHolidays.find(h => h.date === dateStr);
+    if (holiday) {
+      bgColor = "bg-red-300";
+      holidayName = holiday.name;
+    }
 
-    // Approved leave
+    // Approved leave (priority after holiday)
     const approvedLeave = leaves.find(
       l => l.status === "Approved" && date >= new Date(l.startDate) && date <= new Date(l.endDate)
     );
-    if (approvedLeave) bgColor = "bg-green-300";
+    if (!holiday && approvedLeave) {
+      bgColor = "bg-green-300";
+    }
 
-    // Attendance for the day
-    else if (attendance && new Date(attendance.date).toDateString() === date.toDateString()) {
+    // Attendance (priority after leave/holiday)
+    else if (!holiday && !approvedLeave && attendance && new Date(attendance.date).toDateString() === date.toDateString()) {
       const a = attendance;
       if (a.loginTime && a.logoutTime) {
         const hours = (new Date(a.logoutTime) - new Date(a.loginTime)) / (1000*60*60);
@@ -332,7 +342,7 @@ const renderCalendar = () => {
           ${date.toDateString()}
           Attendance: ${attendance?.loginTime ? "In" : "-"} / ${attendance?.logoutTime ? "Out" : "-"}
           Leave: ${approvedLeave ? approvedLeave.reason : "-"}
-          Holiday: ${indianHolidays.includes(dateStr) ? "Yes" : "-"}
+          Holiday: ${holidayName ? holidayName : "-"}
         `}
       >
         {day}
@@ -342,6 +352,7 @@ const renderCalendar = () => {
 
   return <div className="grid grid-cols-7 gap-1">{calendarCells}</div>;
 };
+
 
 
 
