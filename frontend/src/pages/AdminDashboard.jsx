@@ -122,6 +122,12 @@ const handleDeleteUser = async (id) => {
 };
 
 
+const handleLogout = () => {
+  localStorage.removeItem("token"); // remove token
+  window.location.href = "/login";  // redirect to login page
+};
+
+
 
   // --- PDF Downloads ---
   const downloadReportsPDF = () => {
@@ -195,6 +201,12 @@ const handleDeleteUser = async (id) => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">{activeTab.charAt(0).toUpperCase()+activeTab.slice(1)}</h1>
           <span className="font-medium">{currentTime.toLocaleString()}</span>
+           <button
+      onClick={handleLogout}
+      className="bg-red-500 px-4 py-2 rounded text-white hover:bg-red-600"
+    >
+      Logout
+    </button>
         </div>
 
         {/* DASHBOARD */}
