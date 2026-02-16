@@ -17,4 +17,8 @@ router.get("/my", auth, attendanceController.getTodayAttendance);
 // Get all attendance records
 router.get("/all", auth, role("admin"), attendanceController.getAllAttendance);
 
+// Get all attendance for the logged-in user
+router.get("/my/all", auth, attendanceController.getMyAttendance);
+
+
 module.exports = router;

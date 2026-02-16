@@ -183,10 +183,12 @@ const [indianHolidays, setIndianHolidays] = useState([]);
     const dateStr = date.toISOString().slice(0,10);
 
     // Holiday
-    if (indianHolidays.includes(dateStr)) {
-      holidayCount++;
-      continue;
-    }
+    const holiday = indianHolidays.find(h => h.date === dateStr);
+if (holiday) {
+  holidayCount++;
+  continue;
+}
+
 
     // Approved leave
     const isApprovedLeave = leaves.some(

@@ -103,3 +103,18 @@ exports.getAllAttendance = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Get all attendance for the logged-in user
+exports.getMyAttendance = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const records = await Attendance.find({ userId })
+      .sort({ date: -1 })           // latest first
+      .populate("userId", "name email"); // optional if you want name/email
+    res.status(200).json({ attendance: records });
+  } catch (err) {
+    console.error("Get My Attendance Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
