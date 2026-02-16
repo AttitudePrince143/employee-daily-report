@@ -85,18 +85,7 @@ exports.submitLeave = async (req, res) => {
 };
 
 
-// Admin views all leaves (leave history)
-exports.getAllLeaves = async (req, res) => {
-  try {
-    const leaves = await Leave.find()
-      .populate("userId", "name email") // include user info
-      .sort({ startDate: -1 }); // newest first
-    res.json({ leaves });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error fetching leave history" });
-  }
-};
+
 
 exports.getUserLeaves = async (req, res) => {
   try {
@@ -120,12 +109,4 @@ exports.getAllLeaves = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-exports.getAllLeaves = async (req, res) => {
-  try {
-    const leaves = await Leave.find().populate("userId", "name email").sort({ createdAt: -1 });
-    res.json({ leaves });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+
