@@ -176,33 +176,32 @@ const [indianHolidays, setIndianHolidays] = useState([]);
 
   let full = 0, short = 0, checkOnly = 0, leaveCount = 0, holidayCount = 0, absent = 0;
 
-  // Loop over each day of the month
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day);
     const dateStr = date.toISOString().slice(0,10);
 
-    // Check if holiday (Indian holidays array)
-    const isHoliday = indianHolidays.includes(dateStr);
-    if (isHoliday) {
+    // Holiday
+    if (indianHolidays.includes(dateStr)) {
       holidayCount++;
       continue;
     }
 
-    // Check if leave
-    const isLeave = leaves.some(l => {
-      const start = new Date(l.startDate);
-      const end = new Date(l.endDate);
-      return date >= start && date <= end;
-    });
-    if (isLeave) {
+    // Approved leave
+    const isApprovedLeave = leaves.some(
+      l => l.status === "Approved" && date >= new Date(l.startDate) && date <= new Date(l.endDate)
+    );
+    if (isApprovedLeave) {
       leaveCount++;
       continue;
     }
 
-    // Check attendance
-   const dayAttendance = attendance && new Date(attendance.date).toDateString() === date.toDateString() ? attendance : null;
-
+    // Attendance for this day
+    const dayAttendance =
+      attendance && new Date(attendance.date).toDateString() === date.toDateString()
+        ? attendance
+        : null;
 
     if (!dayAttendance) {
       absent++;
@@ -222,7 +221,8 @@ const [indianHolidays, setIndianHolidays] = useState([]);
   setHolidayDays(holidayCount);
   setAbsentDays(absent);
 
-}, [attendance, leaves, currentMonth]);
+}, [attendance, leaves, currentMonth, indianHolidays]);
+
 
 
 useEffect(() => {
@@ -241,22 +241,50 @@ useEffect(() => {
 }, [currentMonth]);
 
 
+<div className="flex justify-between items-center mb-2">
+  <button
+    onClick={() =>
+      setCurrentMonth(
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+      )
+    }
+    className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded"
+  >
+    ◀ Prev
+  </button>
+
+  <span className="font-semibold">
+    {currentMonth.toLocaleString("default", { month: "long" })} {currentMonth.getFullYear()}
+  </span>
+
+  <button
+    onClick={() =>
+      setCurrentMonth(
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+      )
+    }
+    className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded"
+  >
+    Next ▶
+  </button>
+</div>
+
+
+
 
 const renderCalendar = () => {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-
   const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0=Sun
+
   const calendarCells = [];
 
   // Weekday headers
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   weekdays.forEach((day) => {
     calendarCells.push(
-      <div key={`week-${day}`} className="font-semibold text-center p-1">
-        {day}
-      </div>
+      <div key={`week-${day}`} className="font-semibold text-center p-1">{day}</div>
     );
   });
 
@@ -268,7 +296,7 @@ const renderCalendar = () => {
   // Generate each day
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day);
-    const dateStr = date.toISOString().slice(0, 10);
+    const dateStr = date.toISOString().slice(0,10);
 
     // Default color
     let bgColor = "bg-gray-300";
@@ -279,17 +307,18 @@ const renderCalendar = () => {
     // Holiday
     if (indianHolidays.includes(dateStr)) bgColor = "bg-red-300";
 
-    // Leave
-    else if (leaves.some(l => date >= new Date(l.startDate) && date <= new Date(l.endDate))) {
-      bgColor = "bg-yellow-300";
-    }
+    // Approved leave
+    const approvedLeave = leaves.find(
+      l => l.status === "Approved" && date >= new Date(l.startDate) && date <= new Date(l.endDate)
+    );
+    if (approvedLeave) bgColor = "bg-green-300";
 
-    // Attendance
+    // Attendance for the day
     else if (attendance && new Date(attendance.date).toDateString() === date.toDateString()) {
       const a = attendance;
       if (a.loginTime && a.logoutTime) {
-        const hours = (new Date(a.logoutTime) - new Date(a.loginTime)) / (1000 * 60 * 60);
-        bgColor = hours >= 8 ? "bg-green-300" : "bg-orange-300";
+        const hours = (new Date(a.logoutTime) - new Date(a.loginTime)) / (1000*60*60);
+        bgColor = hours >= 8 ? "bg-green-400" : "bg-orange-300";
       } else if (a.loginTime && !a.logoutTime) {
         bgColor = "bg-blue-300";
       }
@@ -302,7 +331,7 @@ const renderCalendar = () => {
         title={`
           ${date.toDateString()}
           Attendance: ${attendance?.loginTime ? "In" : "-"} / ${attendance?.logoutTime ? "Out" : "-"}
-          Leave: ${leaves.find(l => date >= new Date(l.startDate) && date <= new Date(l.endDate))?.reason || "-"}
+          Leave: ${approvedLeave ? approvedLeave.reason : "-"}
           Holiday: ${indianHolidays.includes(dateStr) ? "Yes" : "-"}
         `}
       >
@@ -313,6 +342,7 @@ const renderCalendar = () => {
 
   return <div className="grid grid-cols-7 gap-1">{calendarCells}</div>;
 };
+
 
 
 
@@ -447,7 +477,7 @@ const renderCalendar = () => {
 
       {/* Footer */}
       <footer className="mt-auto py-4 text-center bg-white/20 backdrop-blur-md text-gray-100 rounded-lg shadow-inner">
-        &copy; {new Date().getFullYear()} Syed Adil. All rights reserved.
+        &copy; Syed Adil {new Date().getFullYear()} Employee Dashboard @ All Rights Reserved
       </footer>
     </div>
   );

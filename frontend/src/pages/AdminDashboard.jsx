@@ -557,7 +557,7 @@ const handleLogout = () => {
 
         {/* Footer */}
         <footer className="mt-6 text-center py-4 bg-white/20 backdrop-blur-md text-gray-100 rounded-lg shadow-inner">
-          &copy; Syed Adil {new Date().getFullYear()} Admin Dashboard
+          &copy; Syed Adil {new Date().getFullYear()} Admin Dashboard @All Rights Reserved
         </footer>
       </main>
     </div>
