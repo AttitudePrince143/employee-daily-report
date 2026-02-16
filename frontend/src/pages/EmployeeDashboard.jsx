@@ -38,6 +38,8 @@ const [checkInOnlyDays, setCheckInOnlyDays] = useState(0);
 const [leaveDays, setLeaveDays] = useState(0);
 const [holidayDays, setHolidayDays] = useState(0);
 const [absentDays, setAbsentDays] = useState(0);
+const [indianHolidays, setIndianHolidays] = useState([]);
+
 
 
   // --- Logout ---
@@ -199,7 +201,8 @@ const [absentDays, setAbsentDays] = useState(0);
     }
 
     // Check attendance
-    const dayAttendance = attendance.find(a => new Date(a.date).toDateString() === date.toDateString());
+   const dayAttendance = attendance && new Date(attendance.date).toDateString() === date.toDateString() ? attendance : null;
+
 
     if (!dayAttendance) {
       absent++;
@@ -220,6 +223,75 @@ const [absentDays, setAbsentDays] = useState(0);
   setAbsentDays(absent);
 
 }, [attendance, leaves, currentMonth]);
+
+
+useEffect(() => {
+  const fetchHolidays = async () => {
+    try {
+      const year = currentMonth.getFullYear();
+      const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/IN`);
+      const data = await res.json();
+      const dates = data.map(h => h.date); // "YYYY-MM-DD" format
+      setIndianHolidays(dates);
+    } catch (err) {
+      console.error("Error fetching holidays:", err);
+    }
+  };
+  fetchHolidays();
+}, [currentMonth]);
+
+
+
+const renderCalendar = () => {
+  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+
+  const calendarDays = [];
+
+  // Empty slots for first day alignment
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    calendarDays.push(<div key={`empty-${i}`}></div>);
+  }
+
+  // Render each day
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const dateStr = date.toISOString().slice(0,10);
+
+    let bgColor = "bg-white/20";
+
+   // Color based on summary
+if (indianHolidays.includes(dateStr)) {
+  bgColor = "bg-red-300"; // holiday
+} else if (leaves.some(l => date >= new Date(l.startDate) && date <= new Date(l.endDate))) {
+  bgColor = "bg-yellow-300"; // leave
+} else if (attendance && new Date(attendance.date).toDateString() === date.toDateString()) {
+  const a = attendance;
+  if (a.loginTime && a.logoutTime) {
+    const hours = (new Date(a.logoutTime) - new Date(a.loginTime)) / (1000 * 60 * 60);
+    bgColor = hours >= 8 ? "bg-green-300" : "bg-orange-300"; // full / short
+  } else if (a.loginTime && !a.logoutTime) {
+    bgColor = "bg-blue-300"; // check-in only
+  }
+} else {
+  bgColor = "bg-gray-300"; // absent
+}
+
+
+    calendarDays.push(
+      <div key={day} className={`${bgColor} border rounded p-2 text-center`}>
+        {day}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-7 gap-1">
+      {calendarDays}
+    </div>
+  );
+};
+
 
 
   return (
