@@ -243,54 +243,77 @@ useEffect(() => {
 
 
 const renderCalendar = () => {
-  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const calendarDays = [];
+  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0=Sun
+  const calendarCells = [];
+
+  // Weekday headers
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  weekdays.forEach((day) => {
+    calendarCells.push(
+      <div key={`week-${day}`} className="font-semibold text-center p-1">
+        {day}
+      </div>
+    );
+  });
 
   // Empty slots for first day alignment
   for (let i = 0; i < firstDayOfMonth; i++) {
-    calendarDays.push(<div key={`empty-${i}`}></div>);
+    calendarCells.push(<div key={`empty-${i}`}></div>);
   }
 
-  // Render each day
+  // Generate each day
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const dateStr = date.toISOString().slice(0,10);
+    const date = new Date(year, month, day);
+    const dateStr = date.toISOString().slice(0, 10);
 
-    let bgColor = "bg-white/20";
+    // Default color
+    let bgColor = "bg-gray-300";
 
-   // Color based on summary
-if (indianHolidays.includes(dateStr)) {
-  bgColor = "bg-red-300"; // holiday
-} else if (leaves.some(l => date >= new Date(l.startDate) && date <= new Date(l.endDate))) {
-  bgColor = "bg-yellow-300"; // leave
-} else if (attendance && new Date(attendance.date).toDateString() === date.toDateString()) {
-  const a = attendance;
-  if (a.loginTime && a.logoutTime) {
-    const hours = (new Date(a.logoutTime) - new Date(a.loginTime)) / (1000 * 60 * 60);
-    bgColor = hours >= 8 ? "bg-green-300" : "bg-orange-300"; // full / short
-  } else if (a.loginTime && !a.logoutTime) {
-    bgColor = "bg-blue-300"; // check-in only
-  }
-} else {
-  bgColor = "bg-gray-300"; // absent
-}
+    // Sunday highlight
+    if (date.getDay() === 0) bgColor = "bg-red-100";
 
+    // Holiday
+    if (indianHolidays.includes(dateStr)) bgColor = "bg-red-300";
 
-    calendarDays.push(
-      <div key={day} className={`${bgColor} border rounded p-2 text-center`}>
+    // Leave
+    else if (leaves.some(l => date >= new Date(l.startDate) && date <= new Date(l.endDate))) {
+      bgColor = "bg-yellow-300";
+    }
+
+    // Attendance
+    else if (attendance && new Date(attendance.date).toDateString() === date.toDateString()) {
+      const a = attendance;
+      if (a.loginTime && a.logoutTime) {
+        const hours = (new Date(a.logoutTime) - new Date(a.loginTime)) / (1000 * 60 * 60);
+        bgColor = hours >= 8 ? "bg-green-300" : "bg-orange-300";
+      } else if (a.loginTime && !a.logoutTime) {
+        bgColor = "bg-blue-300";
+      }
+    }
+
+    calendarCells.push(
+      <div
+        key={day}
+        className={`${bgColor} border rounded p-2 text-center relative hover:scale-105 transition cursor-pointer`}
+        title={`
+          ${date.toDateString()}
+          Attendance: ${attendance?.loginTime ? "In" : "-"} / ${attendance?.logoutTime ? "Out" : "-"}
+          Leave: ${leaves.find(l => date >= new Date(l.startDate) && date <= new Date(l.endDate))?.reason || "-"}
+          Holiday: ${indianHolidays.includes(dateStr) ? "Yes" : "-"}
+        `}
+      >
         {day}
       </div>
     );
   }
 
-  return (
-    <div className="grid grid-cols-7 gap-1">
-      {calendarDays}
-    </div>
-  );
+  return <div className="grid grid-cols-7 gap-1">{calendarCells}</div>;
 };
+
 
 
 
