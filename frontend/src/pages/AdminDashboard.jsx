@@ -76,7 +76,7 @@ export default function AdminDashboard() {
 const handleLeaveAction = async (id, action) => {
   try {
     // Backend expects /api/leave/approve/:id or /api/leave/reject/:id
-   await API.put(`/users/${action}/${id}`, {}, { headers });
+   await API.put(`/leave/${action}/${id}`, {}, { headers });
 
     fetchData();
   } catch (err) {
