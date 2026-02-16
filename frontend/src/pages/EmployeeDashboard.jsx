@@ -28,6 +28,17 @@ export default function EmployeeDashboard() {
   const [leaves, setLeaves] = useState([]);
   const [employeeName, setEmployeeName] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
+  // --- Monthly Summary ---
+const [currentMonth, setCurrentMonth] = useState(new Date());
+
+// Counts
+const [fullDays, setFullDays] = useState(0);
+const [shortDays, setShortDays] = useState(0);
+const [checkInOnlyDays, setCheckInOnlyDays] = useState(0);
+const [leaveDays, setLeaveDays] = useState(0);
+const [holidayDays, setHolidayDays] = useState(0);
+const [absentDays, setAbsentDays] = useState(0);
+
 
   // --- Logout ---
   const handleLogout = () => {
@@ -156,6 +167,61 @@ export default function EmployeeDashboard() {
     doc.save("my_reports.pdf");
   };
 
+
+  useEffect(() => {
+  const month = currentMonth.getMonth();
+  const year = currentMonth.getFullYear();
+
+  let full = 0, short = 0, checkOnly = 0, leaveCount = 0, holidayCount = 0, absent = 0;
+
+  // Loop over each day of the month
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    const dateStr = date.toISOString().slice(0,10);
+
+    // Check if holiday (Indian holidays array)
+    const isHoliday = indianHolidays.includes(dateStr);
+    if (isHoliday) {
+      holidayCount++;
+      continue;
+    }
+
+    // Check if leave
+    const isLeave = leaves.some(l => {
+      const start = new Date(l.startDate);
+      const end = new Date(l.endDate);
+      return date >= start && date <= end;
+    });
+    if (isLeave) {
+      leaveCount++;
+      continue;
+    }
+
+    // Check attendance
+    const dayAttendance = attendance.find(a => new Date(a.date).toDateString() === date.toDateString());
+
+    if (!dayAttendance) {
+      absent++;
+    } else if (dayAttendance.loginTime && dayAttendance.logoutTime) {
+      const hours = (new Date(dayAttendance.logoutTime) - new Date(dayAttendance.loginTime)) / (1000*60*60);
+      if (hours >= 8) full++;
+      else short++;
+    } else if (dayAttendance.loginTime && !dayAttendance.logoutTime) {
+      checkOnly++;
+    }
+  }
+
+  setFullDays(full);
+  setShortDays(short);
+  setCheckInOnlyDays(checkOnly);
+  setLeaveDays(leaveCount);
+  setHolidayDays(holidayCount);
+  setAbsentDays(absent);
+
+}, [attendance, leaves, currentMonth]);
+
+
   return (
     <div className={`${darkMode ? "bg-gray-900 text-white" : "bg-linear-to-br from-purple-500 via-blue-400 to-pink-400"} min-h-screen flex flex-col p-6 space-y-6 transition-colors duration-300`}>
 
@@ -201,6 +267,22 @@ export default function EmployeeDashboard() {
           </button>
         </div>
       </div>
+      {/* Calendar */}
+<div className="bg-white/20 backdrop-blur-lg rounded-xl shadow-lg p-6 mt-4">
+  <h2 className="text-xl font-semibold mb-2">Monthly Attendance Calendar</h2>
+  {renderCalendar()}
+
+  {/* Summary counts */}
+  <div className="flex gap-4 mt-2 text-sm">
+    <div>✅ Full Days: {fullDays}</div>
+    <div>⚠ Short Days: {shortDays}</div>
+    <div>🔵 Check-in Only: {checkInOnlyDays}</div>
+    <div>🟡 Leave: {leaveDays}</div>
+    <div>🔴 Holidays: {holidayDays}</div>
+    <div>❌ Absent: {absentDays}</div>
+  </div>
+</div>
+
 
       {/* Daily Reports */}
       <div className="bg-white/20 backdrop-blur-lg rounded-xl shadow-lg p-6">
