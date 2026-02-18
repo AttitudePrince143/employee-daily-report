@@ -3,7 +3,7 @@ const controller = require("../controllers/authController")
 const { body } = require("express-validator");
 const auth = require("../middleware/authMiddleware")
 const role = require("../middleware/roleMiddleware")
-const rateLimit = require("express-rate-limit");
+// const rateLimit = require("express-rate-limit");
 
 
 
@@ -11,14 +11,14 @@ const rateLimit = require("express-rate-limit");
 
 
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: {
-    success: false,
-    message: "Too many login attempts. Try again later."
-  },
-});
+// const loginLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 5,
+//   message: {
+//     success: false,
+//     message: "Too many login attempts. Try again later."
+//   },
+// });
 
 
 router.post(
@@ -34,7 +34,7 @@ router.post(
 );
 router.post(
   "/login",
-  loginLimiter,
+  // loginLimiter,
   [
     body("email").isEmail().withMessage("Valid email required"),
     body("password").notEmpty().withMessage("Password is required"),
